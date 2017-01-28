@@ -1,0 +1,74 @@
+import java.lang.Exception;
+
+COMPILER AdvCalc
+    Interpreter aci;
+    public void setInterpreter(Interpreter aci)
+    {
+        this.aci = aci;
+    }
+CHARACTERS
+    digit = "0123456789".
+    letter = 'A'..'Z' + 'a'..'z'.
+TOKENS
+    number = digit {digit} [ '.' digit {digit} ].
+    ident = letter {digit | letter }.
+IGNORE '\n' + '\r' + '\t'
+
+PRODUCTIONS
+    AdvCalc (. ASTExp exp; .)
+    = { CExp<out exp> (.
+        try {
+            ASTExp res = aci.eval(exp);
+            System.out.println(" " + res);
+        } catch (Exception e) {
+            System.err.println(" Error: " + e.getMessage());}
+        .)
+    } EOF .
+
+    CExp<out ASTExp v> (. v = null; .) = Def<out v> | Exp<out v>.
+    Def<out ASTExp e> = "def" ident ( "(" ParamNames ")" | ) "=" Exp<out e>.
+    ParamNames = ident { "," ident }.
+
+    Exp<out ASTExp e> (. Operator op; ASTExp e2; .)
+    = T<out e> { ( "+" (. op = Operator.ADD; .) T<out e2>
+    | "-" (. op = Operator.SUB; .) T<out e2> ) (. e = new BinExp(e, op, e2); .) }.
+
+    T<out ASTExp e> (. Operator op; ASTExp e2; .)
+    = U<out e> { ( "*" (. op = Operator.MUL; .) U<out e2>
+    | "/" (. op = Operator.DIV; .) U<out e2>
+    | "%" (. op = Operator.RST; .) U<out e2> )
+    (. e = new BinExp(e, op, e2); .) }.
+
+    U<out ASTExp e> (. e = null; Operator op; .)
+    = ("-" (. op = Operator.SUB; .) F<out e> (. e = new UnaryExp(op, e); .)
+    | F<out e> ) .
+
+    F<out ASTExp e> (. e = null; .)
+    = number (. e = new NumberConst(Float.parseFloat(t.val)); .)
+    | VarOrFunc<out e>
+    | IFExp<out e>
+    | "(" Exp<out e> ")" .
+
+    VarOrFunc<out ASTExp e> (. e = null; ASTExp e1; .)
+    = ident (. String name = new String(t.val); .)
+    ( "(" Params<out e1> (. e = new ParamExp(e1); .) ")"
+    | (. e = new Ident(name); .) ).
+
+    Params<out ASTExp e> (. e = null; ASTExp e1, e2; .)
+    = Exp<out e1> (. e = new ParamExp(e1); .)
+    { "," Exp<out e2> (. ((ParamExp) e).list.add(e2); .) }.
+
+    IFExp<out ASTExp e> (. e = null; ASTExp e2, e3; .)
+    = "if" ExpL<out e> "then" Exp<out e2> "else" Exp<out e3> (. e = new IfExp(e, e2, e3); .).
+
+    ExpL<out ASTExp e> (. e = null; Operator op; ASTExp e2; .)
+    = Exp<out e> OpRel<out op> Exp<out e2> (. e = new BinExp(e, op, e2); .).
+
+    OpRel<out Operator op> (. op = null; .)
+    = ">" (. op = Operator.GTR; .)
+    | ">=" (. op = Operator.GEQL; .)
+    | "<" (. op = Operator.LSS; .)
+    | "<=" (. op = Operator.LEQL; .)
+    | "=" (. op = Operator.EQL; .)
+    | "!=" (. op = Operator.DIF; .).
+END AdvCalc.
