@@ -78,14 +78,14 @@ class Interpreter
         else if (exp instanceof NumberConst){
             return exp;
         }
-        // if(ast instanceof UnaryExp){
-        //     ASTExp e = EvaluateSubtree(ast.left);
-        //     if e instanceof NumberConst {
-        //         switch(e.op) {
-        //             case Operator.SUB: return 0 - e;
-        //         }
-        //     }
-        // }
+        else if(exp instanceof UnaryExp){
+            ASTExp e = eval(exp.left);
+            if (e instanceof NumberConst) {
+                switch(((UnaryExp) exp).op) {
+                    case SUB: return new NumberConst(0 - ((NumberConst) e).val);
+                }
+            }
+        }
         else {
             ASTExp v1 = eval(exp.left);
             ASTExp v2 = eval(exp.right);
