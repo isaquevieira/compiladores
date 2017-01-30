@@ -61,14 +61,14 @@ PRODUCTIONS
     IFExp<out ASTExp e> (. e = null; ASTExp e2, e3; .)
     = "if" ExpL<out e> "then" Exp<out e2> "else" Exp<out e3> (. e = new IfExp(e, e2, e3); .).
 
-    ExpL<out ASTExp e> (. e = null; Operator op; ASTExp e2; .)
-    = Exp<out e> OpRel<out op> Exp<out e2> (. e = new BinExp(e, op, e2); .).
+    ExpL<out ASTExp e> (. e = null; OpRel op; ASTExp e2; .)
+    = Exp<out e> OpRel<out op> Exp<out e2> (. e = new ExpL(op, e, e2); .).
 
-    OpRel<out Operator op> (. op = null; .)
-    = ">" (. op = Operator.GTR; .)
-    | ">=" (. op = Operator.GEQL; .)
-    | "<" (. op = Operator.LSS; .)
-    | "<=" (. op = Operator.LEQL; .)
-    | "=" (. op = Operator.EQL; .)
-    | "!=" (. op = Operator.DIF; .).
+    OpRel<out OpRel op> (. op = null; .)
+    = ">" (. op = OpRel.GTR; .)
+    | ">=" (. op = OpRel.GEQL; .)
+    | "<" (. op = OpRel.LSS; .)
+    | "<=" (. op = OpRel.LEQL; .)
+    | "=" (. op = OpRel.EQL; .)
+    | "!=" (. op = OpRel.DIF; .).
 END AdvCalc.

@@ -2,7 +2,8 @@ import java.lang.Exception;
 import java.util.ArrayList;
 import java.util.List;
 
-enum Operator { ADD, SUB, MUL, DIV, RST, GTR, LSS, EQL, GEQL, LEQL, DIF }
+enum Operator { ADD, SUB, MUL, DIV, RST }
+enum OpRel { GTR, LSS, EQL, GEQL, LEQL, DIF }
 
 class ASTExp
 {
@@ -23,10 +24,17 @@ class UnaryExp extends ASTExp {
     }
 }
 
+class ExpL extends ASTExp {
+    OpRel op;
+    ExpL(OpRel o, ASTExp a, ASTExp b) {
+        op = o; left = a; right = b;
+    }
+}
+
 class IfExp extends ASTExp {
-    ASTExp e1, e2, e3;
+    ASTExp middle;
     IfExp(ASTExp e1, ASTExp e2, ASTExp e3) {
-        this.e1 = e1; this.e2 = e2; this.e3 = e3;
+        left = e1; middle = e2; right = e3;
     }
 }
 
@@ -86,6 +94,32 @@ class Interpreter
                 }
             }
         }
+        else if (exp instanceof IfExp) {
+            BoolConst e = (BoolConst) eval(exp.left);
+            if (e.val) {
+                return eval(((IfExp) exp).middle);
+            }
+            else {
+                return eval(exp.right);
+            }
+        }
+        else if (exp instanceof ExpL) {
+            ASTExp v1 = eval(exp.left);
+            ASTExp v2 = eval(exp.right);
+            if(v1 instanceof NumberConst && v2 instanceof NumberConst){
+                NumberConst b1, b2;
+                b1 = (NumberConst) v1;
+                b2 = (NumberConst) v2;
+                switch(((ExpL) exp).op) {
+                    case GTR: return new BoolConst(b1.val > b2.val);
+                    case LSS: return new BoolConst(b1.val < b2.val);
+                    case EQL: return new BoolConst(b1.val == b2.val);
+                    case GEQL: return new BoolConst(b1.val >= b2.val);
+                    case LEQL: return new BoolConst(b1.val <= b2.val);
+                    case DIF: return new BoolConst(b1.val != b2.val);
+                }
+            }
+        }
         else {
             ASTExp v1 = eval(exp.left);
             ASTExp v2 = eval(exp.right);
@@ -98,6 +132,7 @@ class Interpreter
                     case SUB: return new NumberConst(n1.val - n2.val);
                     case MUL: return new NumberConst(n1.val * n2.val);
                     case DIV: return new NumberConst(n1.val / n2.val);
+                    case RST: return new NumberConst(n1.val % n2.val);
                 }
             }
         }
