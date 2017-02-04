@@ -1,0 +1,5 @@
+*.old
+*.class
+Coco.jar
+Parser.java
+Scanner.java
