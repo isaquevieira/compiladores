@@ -19,14 +19,22 @@ PRODUCTIONS
     = { CExp<out exp> (.
         try {
             ASTExp res = aci.eval(exp);
-            System.out.println(" " + res);
+            System.out.println("  " + res);
         } catch (Exception e) {
-            System.err.println(" Error: " + e.getMessage());}
+            System.err.println("  Error: " + e.getMessage());}
         .)
     } EOF .
 
     CExp<out ASTExp v> (. v = null; .) = Def<out v> | Exp<out v>.
-    Def<out ASTExp e> = "def" ident ( "(" ParamNames ")" | ) "=" Exp<out e>.
+
+    Def<out ASTExp e> (. e = null; ASTExp e2; .)
+    = "def" ident (. String name = t.val; .)
+    ( "(" ParamNames ")" (. e = new DefFunc(name); .)
+    | (. e = new DefVar(name); .) )
+    "=" Exp<out e2> (. e.left = e2; .).
+
+    //ParamNames<out ParamExp e> (. e = new ParamExp() .)
+    //= ident (. e.add(t.val) .) { "," ident (. e.add(t.val) .) }.
     ParamNames = ident { "," ident }.
 
     Exp<out ASTExp e> (. Operator op; ASTExp e2; .)
@@ -51,11 +59,11 @@ PRODUCTIONS
 
     VarOrFunc<out ASTExp e> (. e = null; ASTExp e1; .)
     = ident (. String name = new String(t.val); .)
-    ( "(" Params<out e1> (. e = new ParamExp(e1); .) ")"
+    ( "(" Params<out e1> (. e = new Func(name); e.left = new ParamExp(); .) ")"
     | (. e = new Ident(name); .) ).
 
     Params<out ASTExp e> (. e = null; ASTExp e1, e2; .)
-    = Exp<out e1> (. e = new ParamExp(e1); .)
+    = Exp<out e1> (. e = new ParamExp(); .)
     { "," Exp<out e2> (. ((ParamExp) e).list.add(e2); .) }.
 
     IFExp<out ASTExp e> (. e = null; ASTExp e2, e3; .)
