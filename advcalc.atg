@@ -60,7 +60,7 @@ PRODUCTIONS
     VarOrFunc<out ASTExp e> (. e = null; ASTExp e1; .)
     = ident (. String name = new String(t.val); .)
     ( "(" Params<out e1> (. e = new Func(name); e.left = new ParamExp(); .) ")"
-    | (. e = new Ident(name); .) ).
+    | (. e = new Var(name); .) ).
 
     Params<out ASTExp e> (. e = null; ASTExp e1, e2; .)
     = Exp<out e1> (. e = new ParamExp(); .)

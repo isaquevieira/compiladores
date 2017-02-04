@@ -122,10 +122,7 @@ class Interpreter
                 return e;
             }
             else if (exp instanceof Var) {
-                return eval(exp.left);
-            }
-            else if (exp instanceof Ident){
-                String name = ((Ident) exp).name;
+                String name = ((Var) exp).name;
                 ASTExp e = definicoes.get(name);
                 if (e == null) {
                     throw new Error(name + " not defined");
