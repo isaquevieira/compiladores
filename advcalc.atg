@@ -1,4 +1,6 @@
 import java.lang.Exception;
+import java.util.ArrayList;
+import java.util.List;
 
 COMPILER AdvCalc
     Interpreter aci;
@@ -17,6 +19,7 @@ IGNORE '\n' + '\r' + '\t'
 PRODUCTIONS
     AdvCalc (. ASTExp exp; .)
     = { CExp<out exp> (.
+        //exp.printTree(exp);
         try {
             ASTExp res = aci.eval(exp);
             System.out.println("  " + res);
@@ -25,29 +28,36 @@ PRODUCTIONS
         .)
     } EOF .
 
-    CExp<out ASTExp v> (. v = null; .) = Def<out v> | Exp<out v>.
+    CExp<out ASTExp v> (. v = null; .) = Def<out v> | Exp<out v> | Seq<out v>.
 
-    Def<out ASTExp e> (. e = null; ASTExp e2; .)
+    Seq<out SeqExp e> (. e = new SeqExp(); ASTExp e1 = null; .)
+    = "{" Def<out e1> (. e.add(e1); .) ";" { Def<out e1> (. e.add(e1); .) ";" }
+    Exp<out e1> (. e.res = e1; .) "}".
+
+    Def<out ASTExp e> (. e = null;
+                         ASTExp e2 = null; .)
     = "def" ident (. String name = t.val; .)
-    ( "(" ParamNames ")" (. e = new DefFunc(name); .)
+    ( "(" ParamNames<.out List<String> p.> (. e = new DefFunc(name, p); .) ")"
     | (. e = new DefVar(name); .) )
-    "=" Exp<out e2> (. e.left = e2; .).
+    "=" (Exp<out e2> | Seq<out e2>) (. e.left = e2; .).
 
-    //ParamNames<out ParamExp e> (. e = new ParamExp() .)
-    //= ident (. e.add(t.val) .) { "," ident (. e.add(t.val) .) }.
-    ParamNames = ident { "," ident }.
+    ParamNames<.out List<String> paramsList.> (. paramsList = new ArrayList<String>(); .)
+    = ident (. paramsList.add(t.val); .) { "," ident (. paramsList.add(t.val); .) }.
 
-    Exp<out ASTExp e> (. Operator op; ASTExp e2; .)
+    Exp<out ASTExp e> (. Operator op;
+                         ASTExp e2; .)
     = T<out e> { ( "+" (. op = Operator.ADD; .) T<out e2>
     | "-" (. op = Operator.SUB; .) T<out e2> ) (. e = new BinExp(e, op, e2); .) }.
 
-    T<out ASTExp e> (. Operator op; ASTExp e2; .)
+    T<out ASTExp e> (. Operator op;
+                       ASTExp e2; .)
     = U<out e> { ( "*" (. op = Operator.MUL; .) U<out e2>
     | "/" (. op = Operator.DIV; .) U<out e2>
     | "%" (. op = Operator.RST; .) U<out e2> )
     (. e = new BinExp(e, op, e2); .) }.
 
-    U<out ASTExp e> (. e = null; Operator op; .)
+    U<out ASTExp e> (. e = null;
+                       Operator op; .)
     = ("-" (. op = Operator.SUB; .) F<out e> (. e = new UnaryExp(op, e); .)
     | F<out e> ) .
 
@@ -57,19 +67,24 @@ PRODUCTIONS
     | IFExp<out e>
     | "(" Exp<out e> ")" .
 
-    VarOrFunc<out ASTExp e> (. e = null; ASTExp e1; .)
+    VarOrFunc<out ASTExp e> (. e = null;
+                               ASTExp e1; .)
     = ident (. String name = new String(t.val); .)
-    ( "(" Params<out e1> (. e = new Func(name); e.left = new ParamExp(); .) ")"
+    ( "(" Params<.out List<ASTExp> expList.> (. e = new Func(name, expList); .) ")"
     | (. e = new Var(name); .) ).
 
-    Params<out ASTExp e> (. e = null; ASTExp e1, e2; .)
-    = Exp<out e1> (. e = new ParamExp(); .)
-    { "," Exp<out e2> (. ((ParamExp) e).list.add(e2); .) }.
+    Params<.out List<ASTExp> expList.> (. expList = new ArrayList<ASTExp>();
+                                          ASTExp e1, e2; .)
+    = Exp<out e1> (. expList.add(e1); .)
+    { "," Exp<out e2> (. expList.add(e2); .) }.
 
-    IFExp<out ASTExp e> (. e = null; ASTExp e2, e3; .)
+    IFExp<out ASTExp e> (. e = null;
+                           ASTExp e2, e3; .)
     = "if" ExpL<out e> "then" Exp<out e2> "else" Exp<out e3> (. e = new IfExp(e, e2, e3); .).
 
-    ExpL<out ASTExp e> (. e = null; OpRel op; ASTExp e2; .)
+    ExpL<out ASTExp e> (. e = null;
+                          OpRel op;
+                          ASTExp e2; .)
     = Exp<out e> OpRel<out op> Exp<out e2> (. e = new ExpL(op, e, e2); .).
 
     OpRel<out OpRel op> (. op = null; .)

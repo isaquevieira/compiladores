@@ -1,8 +1,5 @@
 import java.lang.Exception;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 enum Operator { ADD, SUB, MUL, DIV, RST }
 enum OpRel { GTR, LSS, EQL, GEQL, LEQL, DIF }
@@ -10,12 +7,43 @@ enum OpRel { GTR, LSS, EQL, GEQL, LEQL, DIF }
 class ASTExp
 {
     ASTExp left, right;
+
+    public void printTree(ASTExp tmpRoot) {
+
+        Queue<ASTExp> currentLevel = new LinkedList<ASTExp>();
+        Queue<ASTExp> nextLevel = new LinkedList<ASTExp>();
+
+        currentLevel.add(tmpRoot);
+
+        while (!currentLevel.isEmpty()) {
+            Iterator<ASTExp> iter = currentLevel.iterator();
+            while (iter.hasNext()) {
+                ASTExp currentNode = iter.next();
+                if (currentNode.left != null) {
+                    nextLevel.add(currentNode.left);
+                }
+                if (currentNode.right != null) {
+                    nextLevel.add(currentNode.right);
+                }
+                System.out.print(currentNode + " ");
+            }
+            System.out.println();
+            currentLevel = nextLevel;
+            nextLevel = new LinkedList<ASTExp>();
+
+        }
+
+    }
 }
 
 class BinExp extends ASTExp {
     Operator op;
     BinExp(ASTExp a, Operator o, ASTExp b) {
         op = o; left = a; right = b;
+    }
+    @Override
+    public String toString() {
+        return String.valueOf(left) + String.valueOf(op) + String.valueOf(right);
     }
 }
 
@@ -24,12 +52,20 @@ class UnaryExp extends ASTExp {
     UnaryExp(Operator x, ASTExp y) {
         op = x; left = y; right = null;
     }
+    @Override
+    public String toString() {
+        return String.valueOf(op);
+    }
 }
 
 class ExpL extends ASTExp {
     OpRel op;
     ExpL(OpRel o, ASTExp a, ASTExp b) {
         op = o; left = a; right = b;
+    }
+    @Override
+    public String toString() {
+        return String.valueOf(left) + String.valueOf(op) + String.valueOf(right);
     }
 }
 
@@ -38,20 +74,9 @@ class IfExp extends ASTExp {
     IfExp(ASTExp e1, ASTExp e2, ASTExp e3) {
         left = e1; middle = e2; right = e3;
     }
-}
-
-class ParamExp extends ASTExp {
-    List<ASTExp> list;
-
-    ParamExp() {
-        list = new ArrayList<ASTExp>();
-    }
-}
-
-class Ident extends ASTExp {
-    String name;
-    Ident(String n){
-        name = n;
+    @Override
+    public String toString() {
+        return String.valueOf(left) + String.valueOf(middle) + String.valueOf(right);
     }
 }
 
@@ -60,6 +85,10 @@ class DefVar extends ASTExp {
     DefVar(String n) {
         name = n;
     }
+    @Override
+    public String toString() {
+        return "=";
+    }
 }
 
 class Var extends ASTExp {
@@ -67,19 +96,52 @@ class Var extends ASTExp {
     Var(String n) {
         name = n;
     }
+    @Override
+    public String toString() {
+        return String.valueOf(name); //;
+    }
 }
 
 class DefFunc extends ASTExp {
     String name;
-    DefFunc(String n) {
+    List<String> params;
+    DefFunc(String n, List<String> l) {
         name = n;
+        params = l;
+    }
+    @Override
+    public String toString() {
+        return "func";//String.valueOf(name) + " = " + String.valueOf(left);
     }
 }
 
 class Func extends ASTExp {
     String name;
-    Func(String n) {
-        name = n;
+    List<ASTExp> params;
+    Map<String, ASTExp> localvars;
+
+    Func(String n, List<ASTExp> params) {
+        this.name = n;
+        this.params = params;
+        localvars = new LinkedHashMap<String, ASTExp>();
+        //
+        // for (String name: expList) {
+        //     localvars.put(name, null);
+        // }
+    }
+}
+
+class SeqExp extends ASTExp {
+    public List<ASTExp> list;
+    ASTExp res;
+
+    SeqExp() {
+        list = new ArrayList<ASTExp>();
+        res = null;
+    }
+
+    void add(ASTExp param){
+        list.add(param);
     }
 }
 
@@ -107,28 +169,154 @@ class BoolConst extends ASTExp {
 
 class Interpreter
 {
-    Map<String, ASTExp> definicoes = new HashMap<String, ASTExp>();
+    public LinkedList<HashMap<String, ASTExp>> definicoes;
+
+    Interpreter() {
+        definicoes = new LinkedList<HashMap<String, ASTExp>>();
+        newContext();
+        //inserir_nativos();
+    }
+
+    // public void inserir_pi(){
+    //     NumberConst valor = new NumberConst(Double.valueOf(3.1415927).floatValue());
+    //     put("pi", valor);
+    // }
+    //
+    // public void inserir_e(){
+    //     NumberConst valor = new NumberConst(Double.valueOf(2.7182817).floatValue());
+    //     put("e", valor);
+    // }
+    //
+    // public void f_sqrt(){
+    //     ParamExp param = new ParamExp();
+    //     Ident id = new Ident("n");
+    //     Var var = new Var("n");
+    //     param.addParam(id);
+    //     NumberConst expoente = new NumberConst(Double.valueOf(0.5).floatValue());
+    //     BinExp bin = new BinExp(var,Operator.POT,expoente);
+    //     DefFunc f = new DefFunc("sqrt");
+    //     f.right = param;
+    //     f.left = bin;
+    //     put(f.name,f);
+    // }
+    //
+    //
+    // public void f_exp(){
+    //     ParamExp param = new ParamExp();
+    //     Ident id = new Ident("n");
+    //     Var var = new Var("n");
+    //     param.addParam(id);
+    //     NumberConst expoente = new NumberConst(Double.valueOf(0.0).floatValue());
+    //     BinExp bin = new BinExp(var,Operator.EXP,expoente);
+    //     DefFunc f = new DefFunc("exp");
+    //     f.right = param;
+    //     f.left = bin;
+    //     put(f.name,f);
+    // }
+    //
+    // public void f_ln(){
+    //     ParamExp param = new ParamExp();
+    //     Ident id = new Ident("n");
+    //     Var var = new Var("n");
+    //     param.addParam(id);
+    //     NumberConst expoente = new NumberConst(Double.valueOf(0.0).floatValue());
+    //     BinExp bin = new BinExp(var,Operator.LN,expoente);
+    //     DefFunc f = new DefFunc("ln");
+    //     f.right = param;
+    //     f.left = bin;
+    //     put(f.name,f);
+    // }
+    //
+    // public void inserir_nativos(){
+    //     inserir_pi();
+    //     inserir_e();
+    //     f_sqrt();
+    //     f_exp();
+    //     f_ln();
+    // }
+
+    public ASTExp find(String name) {
+        Iterator itr = definicoes.descendingIterator();
+        while(itr.hasNext()) {
+            HashMap<String, ASTExp> element = (HashMap<String, ASTExp>) itr.next();
+            ASTExp exp = element.get(name);
+            if (exp != null){
+                return exp;
+            }
+        }
+        return null;
+    }
+
+    public void put(String name, ASTExp exp) {
+        definicoes.getLast().put(name, exp);
+    }
+
+    public void newContext() {
+        HashMap<String, ASTExp> c = new HashMap<String, ASTExp>();
+        definicoes.add(c);
+    }
+
+    public void closeContext() {
+        definicoes.removeLast();
+    }
 
     public ASTExp eval(ASTExp exp) throws Exception
     {
         if(exp == null){
-            throw new Error("Erro na AST");
+            throw new Exception("Erro na AST");
         }
         else {
-            if (exp instanceof DefVar) {
+            if (exp instanceof SeqExp) {
+                SeqExp e = (SeqExp) exp;
+                //newContext();
+                for (ASTExp elem: e.list) {
+                    eval(elem);
+                }
+                ASTExp ret = eval(e.res);
+                //closeContext();
+                return ret;
+            }
+            else if (exp instanceof DefVar) {
                 DefVar var = (DefVar) exp;
                 ASTExp e = eval(var.left);
-                definicoes.put(var.name, e);
+                put(var.name, e);
                 return e;
             }
             else if (exp instanceof Var) {
                 String name = ((Var) exp).name;
-                ASTExp e = definicoes.get(name);
+                ASTExp e = find(name);
                 if (e == null) {
-                    throw new Error(name + " not defined");
+                    throw new Exception(name + " not defined");
                 }
                 else {
                     return eval(e);
+                }
+            }
+            else if (exp instanceof DefFunc) {
+                DefFunc func = (DefFunc) exp;
+                newContext();
+                put(func.name, func);
+                return exp;
+            }
+            else if (exp instanceof Func) {
+                Func f = (Func) exp;
+                DefFunc def = (DefFunc) find(f.name);
+                if (def == null) {
+                    throw new Exception(f.name + " not defined");
+                }
+                else {
+                    newContext();
+                    if (f.params.size() == def.params.size()){
+                        for (int i=0; i<f.params.size(); i++){
+                            put(def.params.get(i), eval(f.params.get(i)));
+                        }
+                    }
+                    else {
+                        throw new Exception("Number of parameters doesn't match");
+                    }
+                    ASTExp e = eval(def.left);
+                    closeContext();
+                    return e;
                 }
             }
             else if (exp instanceof NumberConst){
