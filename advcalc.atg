@@ -19,7 +19,6 @@ IGNORE '\n' + '\r' + '\t'
 PRODUCTIONS
     AdvCalc (. ASTExp exp; .)
     = { CExp<out exp> (.
-        //exp.printTree(exp);
         try {
             ASTExp res = aci.eval(exp);
             System.out.println("  " + res);
@@ -62,7 +61,7 @@ PRODUCTIONS
     | F<out e> ) .
 
     F<out ASTExp e> (. e = null; .)
-    = number (. e = new NumberConst(Float.parseFloat(t.val)); .)
+    = number (. e = new NumberConst(Double.parseDouble(t.val)); .)
     | VarOrFunc<out e>
     | IFExp<out e>
     | "(" Exp<out e> ")" .

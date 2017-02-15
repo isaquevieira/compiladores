@@ -1,39 +1,12 @@
 import java.lang.Exception;
 import java.util.*;
 
-enum Operator { ADD, SUB, MUL, DIV, RST }
+enum Operator { ADD, SUB, MUL, DIV, RST, SQRT, EXP, LN }
 enum OpRel { GTR, LSS, EQL, GEQL, LEQL, DIF }
 
 class ASTExp
 {
     ASTExp left, right;
-
-    public void printTree(ASTExp tmpRoot) {
-
-        Queue<ASTExp> currentLevel = new LinkedList<ASTExp>();
-        Queue<ASTExp> nextLevel = new LinkedList<ASTExp>();
-
-        currentLevel.add(tmpRoot);
-
-        while (!currentLevel.isEmpty()) {
-            Iterator<ASTExp> iter = currentLevel.iterator();
-            while (iter.hasNext()) {
-                ASTExp currentNode = iter.next();
-                if (currentNode.left != null) {
-                    nextLevel.add(currentNode.left);
-                }
-                if (currentNode.right != null) {
-                    nextLevel.add(currentNode.right);
-                }
-                System.out.print(currentNode + " ");
-            }
-            System.out.println();
-            currentLevel = nextLevel;
-            nextLevel = new LinkedList<ASTExp>();
-
-        }
-
-    }
 }
 
 class BinExp extends ASTExp {
@@ -146,8 +119,8 @@ class SeqExp extends ASTExp {
 }
 
 class NumberConst extends ASTExp {
-    float val;
-    NumberConst(float x) {
+    double val;
+    NumberConst(double x) {
         val = x;
     }
     @Override
@@ -174,66 +147,53 @@ class Interpreter
     Interpreter() {
         definicoes = new LinkedList<HashMap<String, ASTExp>>();
         newContext();
-        //inserir_nativos();
+        inserir_nativos();
     }
 
-    // public void inserir_pi(){
-    //     NumberConst valor = new NumberConst(Double.valueOf(3.1415927).floatValue());
-    //     put("pi", valor);
-    // }
-    //
-    // public void inserir_e(){
-    //     NumberConst valor = new NumberConst(Double.valueOf(2.7182817).floatValue());
-    //     put("e", valor);
-    // }
-    //
-    // public void f_sqrt(){
-    //     ParamExp param = new ParamExp();
-    //     Ident id = new Ident("n");
-    //     Var var = new Var("n");
-    //     param.addParam(id);
-    //     NumberConst expoente = new NumberConst(Double.valueOf(0.5).floatValue());
-    //     BinExp bin = new BinExp(var,Operator.POT,expoente);
-    //     DefFunc f = new DefFunc("sqrt");
-    //     f.right = param;
-    //     f.left = bin;
-    //     put(f.name,f);
-    // }
-    //
-    //
-    // public void f_exp(){
-    //     ParamExp param = new ParamExp();
-    //     Ident id = new Ident("n");
-    //     Var var = new Var("n");
-    //     param.addParam(id);
-    //     NumberConst expoente = new NumberConst(Double.valueOf(0.0).floatValue());
-    //     BinExp bin = new BinExp(var,Operator.EXP,expoente);
-    //     DefFunc f = new DefFunc("exp");
-    //     f.right = param;
-    //     f.left = bin;
-    //     put(f.name,f);
-    // }
-    //
-    // public void f_ln(){
-    //     ParamExp param = new ParamExp();
-    //     Ident id = new Ident("n");
-    //     Var var = new Var("n");
-    //     param.addParam(id);
-    //     NumberConst expoente = new NumberConst(Double.valueOf(0.0).floatValue());
-    //     BinExp bin = new BinExp(var,Operator.LN,expoente);
-    //     DefFunc f = new DefFunc("ln");
-    //     f.right = param;
-    //     f.left = bin;
-    //     put(f.name,f);
-    // }
-    //
-    // public void inserir_nativos(){
-    //     inserir_pi();
-    //     inserir_e();
-    //     f_sqrt();
-    //     f_exp();
-    //     f_ln();
-    // }
+    public void inserir_pi(){
+        NumberConst valor = new NumberConst(Math.PI);
+        put("pi", valor);
+    }
+
+    public void inserir_e(){
+        NumberConst valor = new NumberConst(Math.E);
+        put("e", valor);
+    }
+
+    public void f_sqrt(){
+        List<String> params = new ArrayList<String>();
+        params.add("n");
+        UnaryExp u = new UnaryExp(Operator.SQRT, new Var("n"));
+        DefFunc f = new DefFunc("sqrt", params);
+        f.left = u;
+        put(f.name,f);
+    }
+
+    public void f_exp(){
+        List<String> params = new ArrayList<String>();
+        params.add("n");
+        UnaryExp u = new UnaryExp(Operator.EXP, new Var("n"));
+        DefFunc f = new DefFunc("exp", params);
+        f.left = u;
+        put(f.name,f);
+    }
+
+    public void f_ln(){
+        List<String> params = new ArrayList<String>();
+        params.add("n");
+        UnaryExp u = new UnaryExp(Operator.LN, new Var("n"));
+        DefFunc f = new DefFunc("ln", params);
+        f.left = u;
+        put(f.name,f);
+    }
+
+    public void inserir_nativos(){
+        inserir_pi();
+        inserir_e();
+        f_sqrt();
+        f_exp();
+        f_ln();
+    }
 
     public ASTExp find(String name) {
         Iterator itr = definicoes.descendingIterator();
@@ -268,12 +228,12 @@ class Interpreter
         else {
             if (exp instanceof SeqExp) {
                 SeqExp e = (SeqExp) exp;
-                //newContext();
+                newContext();
                 for (ASTExp elem: e.list) {
                     eval(elem);
                 }
                 ASTExp ret = eval(e.res);
-                //closeContext();
+                closeContext();
                 return ret;
             }
             else if (exp instanceof DefVar) {
@@ -325,8 +285,12 @@ class Interpreter
             else if(exp instanceof UnaryExp){
                 ASTExp e = eval(exp.left);
                 if (e instanceof NumberConst) {
+                    NumberConst n = (NumberConst) e;
                     switch(((UnaryExp) exp).op) {
-                        case SUB: return new NumberConst(0 - ((NumberConst) e).val);
+                        case SUB: return new NumberConst(0 - n.val);
+                        case SQRT: return new NumberConst(Math.sqrt(n.val));
+                        case EXP: return new NumberConst(Math.exp(n.val));
+                        case LN: return new NumberConst(Math.log(n.val));
                     }
                 }
             }
